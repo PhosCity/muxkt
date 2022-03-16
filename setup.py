@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 with open("README.md") as readme_file:
     readme = readme_file.read()
@@ -7,12 +7,13 @@ setup(
     name="muxkt",
     description="Wrapper for SubKt written in Python",
     version="0.1.4",
-    py_modules=["muxkt"],
-    install_requires=["Click", "colorama", "iterfzf"],
+    install_requires=["Click>=8.0.4", "colorama>=0.4.4", "iterfzf>=0.5.0.20.0"],
     entry_points="""
         [console_scripts]
         muxkt=muxkt.cli:main
     """,
+    packages=find_packages(),
+    include_package_data=True,
     author="PhosCity",
     author_email="phoscity2@gmail.com",
     python_requires=">=3.6",
