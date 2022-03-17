@@ -146,13 +146,11 @@ class Mux:
         Config().add_history(project, path, chosen_episodes)
         for ep in chosen_episodes:
             click.secho((f'Muxing "{project}" - Episode {ep}'), fg="blue")
-            if os.name == "posix":
-                command = "./gradlew --console=plain mux." + str(ep)
-            else:
-                command = "gradlew --console=plain mux." + str(ep)
+            cmdfile = "./gradlew" if os.name == "posix" else "gradlew"
+            command = [cmdfile, "--console=plain", "mux." + str(ep)]
 
             with open(self.output_file, "w") as f:
-                p1 = subprocess.run(command, shell=True, stdout=f, stderr=f, text=True)
+                p1 = subprocess.run(command, stdout=f, stderr=f, text=True)
                 if p1.returncode == 0:
                     (
                         font_list,
