@@ -1,31 +1,22 @@
 from setuptools import setup, find_packages
-
-with open("README.md") as readme_file:
-    readme = readme_file.read()
+from muxkt.helpers.__version__ import VERSION
 
 setup(
     name="muxkt",
-    description="Wrapper for SubKt written in Python",
-    version="0.1.4",
-    install_requires=["Click>=8.0.4", "colorama>=0.4.4", "iterfzf>=0.5.0.20.0"],
+    version=VERSION,
+    author="PhosCiry",
+    author_email="phoscity2@gmail.com",
+    description="Wrapper for SubKt written in python",
+    packages=find_packages(),
+    url="https://github.com/PhosCity/muxkt",
+    keywords=["muxkt", "subkt", "SubKt"],
+    install_requires=[
+        "click",
+        "iterfzf",
+        "colorama",
+    ],
     entry_points="""
         [console_scripts]
-        muxkt=muxkt.cli:main
+        muxkt=muxkt.main:cli
     """,
-    packages=find_packages(),
-    include_package_data=True,
-    author="PhosCity",
-    author_email="phoscity2@gmail.com",
-    python_requires=">=3.6",
-    classifiers=[
-        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
-        "Natural Language :: English",
-        "Programming Language :: Python :: 3",
-        "Operating System :: OS Independent",
-    ],
-    license="GNU General Public License v3",
-    long_description=readme,
-    long_description_content_type="text/markdown",
-    keywords=["muxkt", "subkt", "SubKt"],
-    url="https://github.com/PhosCity/muxkt",
 )

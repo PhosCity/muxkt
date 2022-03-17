@@ -2,138 +2,17 @@ import os
 import re
 import click
 import subprocess
-from time import sleep
-from iterfzf import iterfzf
-from configparser import ConfigParser
-from shutil import which
 
-VERSION = "0.1.4"
-CONF = ConfigParser()
+from muxkt.commands.config import Config
+from muxkt.helpers.utils import (
+    check_dependency,
+    exit_if_empty_variable,
+    exit_with_msg,
+    path_is_subkt,
+    select_episode,
+)
+
 PYMUX_FOLDER = click.get_app_dir("muxkt")
-CONFIG = os.path.join(PYMUX_FOLDER, "config")
-DEPENDENCIES = ["java", "mkvmerge"]
-
-
-class Config:
-    def __init__(self):
-        if not os.path.exists(PYMUX_FOLDER):
-            os.makedirs(PYMUX_FOLDER)
-
-    def config_exists(self):
-        """Checks if config file exists"""
-        return os.path.exists(CONFIG)
-
-    def config_add(self):
-        """Add projects to config."""
-        if not self.config_exists():
-            click.secho(("Creating new config..."), fg="blue")
-        CONF.read(CONFIG)
-        if not CONF.has_section("Project"):
-            CONF.add_section("Project")
-        while True:
-            # Ask user for project informtation
-            click.clear()
-            project = click.prompt("Name of Project", type=str)
-            path = click.prompt("Path of the project", type=str)
-            if os.path.exists(path):
-                if not path_is_subkt(path):
-                    click.secho(
-                        ("Please add a path that has the subkt configs."), fg="red"
-                    )
-                else:
-                    click.secho((f"\nAdded a new project {project}"), fg="green")
-                    CONF.set("Project", project, path)
-
-                    with open(CONFIG, "w") as c:
-                        CONF.write(c)
-            else:
-                click.secho((f"\n {path} is not a valid path"), fg="red")
-            if not click.confirm("Do you want to continue adding project to config?"):
-                break
-
-    def config_remove(self):
-        """Remove projects from the config."""
-        if not self.config_exists():
-            exit_with_msg("Config does not exist. Exiting.")
-        CONF.read(CONFIG)
-        if CONF.has_section("Project"):
-            project = iterfzf(
-                selection(CONF["Project"]), prompt="Select a project to remove:"
-            )
-            if project:
-                CONF.remove_option("Project", project)
-                with open(CONFIG, "w") as c:
-                    CONF.write(c)
-            else:
-                exit_with_msg("No project selected.")
-
-    def config_read(self, name):
-        """Read projects from config and allows the user to choose from all the availabe projects.
-        If project name is passed as an argument, then it auto-chooses from the config.
-        Finally, once project is chosen, it reads the path of the project.
-        If config does not exist, it prompts the user to add one.
-        """
-        if not self.config_exists():
-            click.secho(("Config does not exists."), fg="red")
-            if click.confirm("\nDo you want to add a new config?"):
-                self.config_add()
-            else:
-                exit_with_msg("\nCannot proceed without config. Exiting!")
-
-        CONF.read(CONFIG)
-        if name:
-            project = name
-        else:
-            project = iterfzf(selection(CONF["Project"]), prompt="Select a project:")
-
-        try:
-            path = CONF["Project"][project]
-        except KeyError:
-            click.secho(
-                (f'The project "{name}" does not exist in the config.'), fg="red"
-            )
-            click.echo("\nThe valid project names are:")
-            for i in CONF["Project"]:
-                click.echo(i)
-            exit()
-
-        return project, path
-
-    def config_edit(self):
-        """Manually edit the config fileself.
-        It auto-chooses a default editor of your computer."""
-        if not self.config_exists():
-            click.echo("Config does not exists.")
-        else:
-            try:
-                click.edit(filename=CONFIG)
-            except Exception:
-                click.echo("Editor could not be found.")
-
-    def config_history(self):
-        """Reads the muxing history saved in config."""
-        if not self.config_exists():
-            exit_with_msg("Could not retrieve history becuase config does not exist.")
-        CONF.read(CONFIG)
-        try:
-            project_hist = list(CONF["History"])
-        except KeyError:
-            exit_with_msg("History could not be found in the config.")
-        project = project_hist[0]
-        path_episodes_hist = CONF["History"][project]
-        path_episodes = path_episodes_hist.split(";")
-        path = path_episodes[0]
-        chosen_episodes = path_episodes[1].split(",")
-        return (project, path, chosen_episodes)
-
-    def add_history(self, project, path, episode):
-        episode = ",".join([str(x) for x in episode])
-        CONF.remove_section("History")
-        CONF.add_section("History")
-        hist = path + ";" + episode
-        CONF.set("History", project, hist)
-        with open(CONFIG, "w") as c:
-            CONF.write(c)
 
 
 class Mux:
@@ -311,99 +190,7 @@ class Mux:
                     click.echo("")
 
 
-def selection(_list):
-    """Takes in a list and allows the user to choose among the list using fzf"""
-    for item in _list:
-        yield item.strip()
-        sleep(0.01)
-
-
-def path_is_subkt(_path):
-    """Takes path and checks if that path is a Subkt directory or not"""
-    if os.path.exists(os.path.join(_path, "build.gradle.kts")) is False:
-        click.secho(("\nThis folder does not appear to be a Subkt folder."), fg="red")
-        return False
-    else:
-        return True
-
-
-def exit_if_empty_variable(var_name, variable):
-    """Takes a variable and exits if that variable is empty"""
-    if not variable:
-        exit_with_msg(f"{var_name} could not be determined. Exiting.")
-
-
-def exit_with_msg(msg):
-    """Takes a message, displays it and exits the program"""
-    click.secho((msg), err=True, fg="red")
-    exit()
-
-
-def select_episode(episode, alt_folder):
-    """Selects episode to mux. If alternate folder structure is chosen, arc as well as episodes is chosen."""
-    chosen_episode = []
-    episode_list = []
-    arc = ""
-    if alt_folder:
-        arc = select_folder(".", "Select an arc: ", False)
-    if episode:
-        # If episode given by user is single digit, pad it with 0
-        episode = episode if episode > 9 else f"{episode:02}"
-        episode_list.append(str(episode))
-        # chosen_episode.append(episode)
-    else:
-        episode_folder = os.path.join(os.path.abspath("."), arc)
-        episode_list = select_folder(
-            episode_folder, "Select single or multiple episode: ", True
-        )
-    if alt_folder:
-        # Clean up arc name
-        arc = arc[3:]
-        arc = arc.replace(" ", "")
-        arc = arc.lower()
-        # Read exceptions from history for arcname
-        CONF.read(CONFIG)
-        try:
-            arc = CONF["Exceptions"][arc]
-        except KeyError:
-            pass
-        chosen_episode = [arc + "_" + i for i in episode_list]
-    else:
-        chosen_episode = episode_list
-
-    return chosen_episode
-
-
-def select_folder(path, _prompt, _multi):
-    """Takes in a path and allows the user to choose folders in that path that starts with number.
-    Therefore, both arcs and episodes sould start with a digit."""
-    folder_list = os.listdir(path)
-    _list = sorted(
-        item
-        for item in folder_list
-        if os.path.isdir(os.path.join(path, item)) and item[0].isdigit()
-    )
-    choice = iterfzf(selection(_list), prompt=_prompt, multi=_multi)
-    return choice
-
-
-def check_dependency():
-    missing_dependency = [item for item in DEPENDENCIES if which(item) is None]
-    if missing_dependency:
-        click.secho(("The following dependecies are missing:"), fg="red")
-        for i in missing_dependency:
-            click.echo(i)
-        exit(1)
-
-
-@click.group()
-@click.version_option(version=VERSION)
-def main():
-    """Wrapper for Subkt written in Python."""
-    pass
-
-
-@main.command()
+@click.command()
 @click.option(
     "-p", "--path", type=click.Path(exists=True), help="Path to the project directory."
 )
@@ -462,27 +249,3 @@ def mux(path, episode, name, repeat, alt_folder, output):
 
     # Mux the chosen episodes
     Mux().mux_episodes(project, path, chosen_episodes)
-
-
-@main.group()
-def config():
-    """Add, remove, edit projects in the config."""
-    pass
-
-
-@config.command()
-def add():
-    """Add projects to config."""
-    Config().config_add()
-
-
-@config.command()
-def remove():
-    """Remove projects from the config."""
-    Config().config_remove()
-
-
-@config.command()
-def edit():
-    """Manually edit the config."""
-    Config().config_edit()
