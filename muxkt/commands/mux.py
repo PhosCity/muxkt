@@ -25,7 +25,7 @@ class Mux:
         Config().add_history(project, path, chosen_episodes)
         for ep in chosen_episodes:
             click.secho((f'Muxing "{project}" - Episode {ep}'), fg="blue")
-            cmdfile = "./gradlew" if os.name == "posix" else "gradlew"
+            cmdfile = "./gradlew" if os.name == "posix" else "gradlew.bat"
             command = [cmdfile, "--console=plain", "mux." + str(ep)]
 
             with open(self.output_file, "w") as f:

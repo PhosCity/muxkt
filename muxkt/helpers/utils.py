@@ -53,7 +53,7 @@ def select_episode(episode, alt_folder):
         arc = select_folder(".", "Select an arc: ", False)
     if episode:
         # If episode given by user is single digit, pad it with 0
-        episode = episode if episode > 9 else f"{episode:02}"
+        episode = f"{episode:02}"
         episode_list.append(str(episode))
         # chosen_episode.append(episode)
     else:
