@@ -7,7 +7,7 @@ from iterfzf import iterfzf
 from configparser import ConfigParser
 from shutil import which
 
-VERSION = "0.1.1"
+VERSION = "0.1.4"
 CONF = ConfigParser()
 PYMUX_FOLDER = click.get_app_dir("muxkt")
 CONFIG = os.path.join(PYMUX_FOLDER, "config")
@@ -367,8 +367,7 @@ def select_episode(episode, alt_folder):
             arc = CONF["Exceptions"][arc]
         except KeyError:
             pass
-        for i in episode_list:
-            chosen_episode.append(arc + "_" + i)
+        chosen_episode = [arc + "_" + i for i in episode_list]
     else:
         chosen_episode = episode_list
 
@@ -379,21 +378,17 @@ def select_folder(path, _prompt, _multi):
     """Takes in a path and allows the user to choose folders in that path that starts with number.
     Therefore, both arcs and episodes sould start with a digit."""
     folder_list = os.listdir(path)
-    _list = []
-    for item in folder_list:
-        if os.path.isdir(os.path.join(path, item)) and item[0].isdigit():
-            _list.append(item)
-
-    _list.sort()
+    _list = sorted(
+        item
+        for item in folder_list
+        if os.path.isdir(os.path.join(path, item)) and item[0].isdigit()
+    )
     choice = iterfzf(selection(_list), prompt=_prompt, multi=_multi)
     return choice
 
 
 def check_dependency():
-    missing_dependency = []
-    for item in DEPENDENCIES:
-        if which(item) is None:
-            missing_dependency.append(item)
+    missing_dependency = [item for item in DEPENDENCIES if which(item) is None]
     if missing_dependency:
         click.secho(("The following dependecies are missing:"), fg="red")
         for i in missing_dependency:
