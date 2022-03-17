@@ -31,80 +31,63 @@ class Mux:
             with open(self.output_file, "w") as f:
                 p1 = subprocess.run(command, stdout=f, stderr=f, text=True)
                 if p1.returncode == 0:
-                    (
-                        font_list,
-                        task_list,
-                        chapter_list,
-                        track_list,
-                        output_list,
-                    ) = self.parse_output()
-                    font_list.sort()
-                    results_list = [task_list, chapter_list, track_list, font_list]
-                    results_headers = [
-                        "TASKS PERFORMED:",
-                        "CHAPTERS CREATED:",
-                        "MKV TRACKS:",
-                        "FONTS ATTACHED:",
-                    ]
-                    # Print the results
-                    for items, headers in zip(results_list, results_headers):
-                        if items:
-                            click.secho((headers), fg="green", bold=True)
-                            for i in items:
-                                click.echo(i)
-                            click.echo("")
-
-                    # Print the warnings
-                    self.mux_warning()
-
-                    # Not a subkt feature but warn if there are duplicate fonts attached(at least the names)
-                    duplicate_fonts = [x for x in font_list if font_list.count(x) > 1]
-                    unique_duplicates = list(set(duplicate_fonts))
-                    if unique_duplicates:
-                        click.secho(
-                            (
-                                "The following fonts' name seems to be duplicated. You might want to take a look:"
-                            ),
-                            fg="red",
-                        )
-                        for i in unique_duplicates:
-                            click.echo(i)
-                        click.echo("")
-
-                    # Pring the muxed episode name
-                    if output_list:
-                        click.secho("OUTPUT:", fg="green", bold=True)
-                        click.echo(output_list[0])
-                        click.echo("")
-                    click.secho(("BUILD SUCCESSFUL"), fg="green")
+                    self.mux_success()
                 else:
                     self.mux_warning()
                     self.mux_failure()
 
-    def parse_output(self):
-        font_list = []
-        task_list = []
-        chapter_list = []
-        track_list = []
-        output_list = []
-        raw_strings = [
-            r"Attaching (.*[otOT][tT][fF])",
-            r"> Task :([^S].*)",
-            r"(CHAPTER.*)",
-            r"(Track .*])",
-            r"Output: (.*\.mkv)",
-        ]
-        list_of_lists = [font_list, task_list, chapter_list, track_list, output_list]
-
-        with open(self.output_file) as f:
+    def mux_success(self):
+        with open(self.output_file, "r") as f:
             lines = f.read()
+            raw_strings = [
+                r"> Task :([^S].*)",
+                r"(CHAPTER.*)",
+                r"(Track.*])",
+                r"Attaching (.*[otOT][tT][fF])",
+                r"(Validating fonts.*|warning: .*)",
+                r"Attaching (.*[otOT][tT][fF])",
+                r"Output: (.*mkv)",
+                r"(\d+ actionable tasks:.*)",
+                r"(BUILD SUCCESSFUL in .*s)",
+            ]
 
-            for r, l in zip(raw_strings, list_of_lists):
-                pattern = re.compile(r)
+            headers = [
+                "TASKS PERFORMED:",
+                "CHAPTERS GENERATED:",
+                "TRACK LIST:",
+                "FONTS ATTACHED:",
+                "WARNINGS:",
+                "DUPLICATE FONTS ATTACHED:",
+                "OUTPUT:",
+                "",
+                "",
+            ]
+
+            for raw, head in zip(raw_strings, headers):
+                pattern = re.compile(raw)
                 match = pattern.finditer(lines)
-                for item in match:
-                    l.append(item.group(1))
-        return (font_list, task_list, chapter_list, track_list, output_list)
+                results = [item.group(1) for item in match]
+
+                if results:
+                    if head == "TASKS PERFORMED:":
+                        results = [x.replace(".default", "") for x in results]
+                    elif head == "FONTS ATTACHED:":
+                        # Sort all the fonts in alphabetical order
+                        results.sort()
+                    elif head == "WARNINGS:":
+                        self.mux_warning()
+                    elif head == "DUPLICATE FONTS ATTACHED:":
+                        duplicate_fonts = [x for x in results if results.count(x) > 1]
+                        results = list(set(duplicate_fonts))
+                        if not results:
+                            head = ""
+
+                    if head != "WARNINGS:":
+                        if head:
+                            click.secho((head), fg="blue", bold=True)
+                        for item in results:
+                            click.echo(item)
+                        click.echo("")
 
     def mux_warning(self):
         warning_list = []
