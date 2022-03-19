@@ -69,20 +69,22 @@ class Mux:
                 results = [item.group(1) for item in match]
 
                 if results:
-                    if head == "TASKS PERFORMED:":
-                        results = [x.replace(".default", "") for x in results]
-                    elif head == "FONTS ATTACHED:":
-                        # Sort all the fonts in alphabetical order
-                        results.sort()
-                    elif head == "WARNINGS:":
+                    if head == "WARNINGS:":
                         self.mux_warning()
-                    elif head == "DUPLICATE FONTS ATTACHED:":
-                        duplicate_fonts = [x for x in results if results.count(x) > 1]
-                        results = list(set(duplicate_fonts))
-                        if not results:
-                            head = ""
+                    else:
+                        if head == "TASKS PERFORMED:":
+                            results = [x.replace(".default", "") for x in results]
+                        elif head == "FONTS ATTACHED:":
+                            # Sort all the fonts in alphabetical order
+                            results.sort()
+                        elif head == "DUPLICATE FONTS ATTACHED:":
+                            duplicate_fonts = [
+                                x for x in results if results.count(x) > 1
+                            ]
+                            results = list(set(duplicate_fonts))
+                            if not results:
+                                head = ""
 
-                    if head != "WARNINGS:":
                         if head:
                             click.secho((head), fg="blue", bold=True)
                         for item in results:
@@ -180,8 +182,10 @@ class Mux:
 @click.option(
     "-a", "--alt_folder", is_flag=True, help="Altenate folder structure(./arc/episode)"
 )
-@click.option("-n", "--name", type=str, help="Name of the project saved in config.")
-@click.option("-e", "--episode", type=int, help="Episode you want to mux.")
+# @click.option("-n", "--name", type=str, help="Name of the project saved in config.")
+# @click.option("-e", "--episode", type=int, help="Episode you want to mux.")
+@click.argument("project", required=False, nargs=1)
+@click.argument("episode", required=False, nargs=-1, type=int)
 @click.option("-r", "--repeat", is_flag=True, help="Repeat last muxing action.")
 @click.option(
     "-o",
@@ -189,11 +193,16 @@ class Mux:
     is_flag=True,
     help="See whole output of Subkt.",
 )
-def mux(path, episode, name, repeat, alt_folder, output):
-    """Mux the episodes."""
-    chosen_episodes = []
+@click.help_option("-h", "--help")
+def mux(path, episode, project, repeat, alt_folder, output):
+    """Mux the episodes. Optionally, provide project and episodes as argument."""
+
+    # Check for dependenies and exit if anything required is not found.
     check_dependency()
 
+    # If episode is provided by the user as an argument, create a list of all of those episodes, but pad it with 0 if the episode is single digit.
+
+    # Show the full SubKt of last mux and exit
     if output:
         f = open(os.path.join(PYMUX_FOLDER, "output.txt"), "r")
         content = f.read()
@@ -201,21 +210,22 @@ def mux(path, episode, name, repeat, alt_folder, output):
         f.close()
         exit()
 
+    # Read the History section of config and get path and list of chosen_episodes that was muxed the last time.
+    chosen_episodes = []
     if repeat:
-        # Read the History section of config and get path and list of chosen_episodes that was muxed the last time.
-        project, path, chosen_episodes = Config().config_history()
+        project_name, path, chosen_episodes = Config().config_history()
     elif path:
         if not path_is_subkt(path):
             exit()
-        project = path
-    elif name:
-        project, path = Config().config_read(name)
+        project_name = path
+    elif project:
+        project_name, path = Config().config_read(project)
     else:
         try:
-            project, path = Config().config_read("")
+            project_name, path = Config().config_read("")
         except AttributeError:
             exit_with_msg("You need to choose a project to continue.")
-    exit_if_empty_variable("Project", project)
+    exit_if_empty_variable("Project", project_name)
     exit_if_empty_variable("Path", path)
 
     # Change directory to the project path
@@ -226,9 +236,9 @@ def mux(path, episode, name, repeat, alt_folder, output):
 
     # Get a list of episodes to mux
     if not chosen_episodes:
-        chosen_episodes = select_episode(episode, alt_folder)
+        chosen_episodes = select_episode(episode, project_name, alt_folder)
 
     exit_if_empty_variable("Episodes", chosen_episodes)
 
     # Mux the chosen episodes
-    Mux().mux_episodes(project, path, chosen_episodes)
+    Mux().mux_episodes(project_name, path, chosen_episodes)

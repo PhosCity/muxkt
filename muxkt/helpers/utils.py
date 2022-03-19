@@ -38,45 +38,52 @@ def exit_with_msg(msg):
     exit()
 
 
-def select_episode(episode, alt_folder):
+def select_episode(episode, project_name, alt_folder):
     """Selects episode to mux. If alternate folder structure is chosen, arc as well as episodes is chosen."""
     from configparser import ConfigParser
 
-    arc = ""
-    episode_list = []
-    chosen_episode = []
     CONF = ConfigParser()
     PYMUX_FOLDER = click.get_app_dir("muxkt")
     CONFIG = os.path.join(PYMUX_FOLDER, "config")
+    # Read exceptions from history for arcname
+    CONF.read(CONFIG)
 
-    if alt_folder:
-        arc = select_folder(".", "Select an arc: ", False)
+    try:
+        alt_folder = CONF["Alt-Folder"][project_name]
+    except KeyError:
+        pass
+
     if episode:
-        # If episode given by user is single digit, pad it with 0
-        episode = f"{episode:02}"
-        episode_list.append(str(episode))
-        # chosen_episode.append(episode)
-    else:
-        episode_folder = os.path.join(os.path.abspath("."), arc)
-        episode_list = select_folder(
-            episode_folder, "Select single or multiple episode: ", True
+        if type(episode) is tuple:
+            episode = [f"{item:02}" for item in episode]
+        else:
+            episode = [f"{episode:02}"]
+
+    if episode and not alt_folder:
+        chosen_episodes = episode
+    elif not episode and not alt_folder:
+        chosen_episodes = select_folder(
+            ".", "Select single or multiple episode: ", True
         )
-    if alt_folder:
+    else:
+        arc = select_folder(".", "Select an arc: ", False)
+        if not episode:
+            # Select episodes
+            episode_folder = os.path.join(os.path.abspath("."), arc)
+            episode = select_folder(
+                episode_folder, "Select single or multiple episode: ", True
+            )
         # Clean up arc name
         arc = arc[3:]
         arc = arc.replace(" ", "")
         arc = arc.lower()
-        # Read exceptions from history for arcname
-        CONF.read(CONFIG)
         try:
             arc = CONF["Exceptions"][arc]
         except KeyError:
             pass
-        chosen_episode = [arc + "_" + i for i in episode_list]
-    else:
-        chosen_episode = episode_list
+        chosen_episodes = [arc + "_" + str(i) for i in episode]
 
-    return chosen_episode
+    return chosen_episodes
 
 
 def select_folder(path, _prompt, _multi):
