@@ -12,7 +12,7 @@ Muxkt is a wrapper for [SubKt](https://github.com/Myaamori/SubKt) that was writt
 * Redo the last mux (single or mutiple episodes) with a flag.
 * If you want to watch the original output of Subkt for the last mux you did, you can easily do so with a flag.
 * Easily add or remove projects from the config. There is also a command to open the config in your default editor so that you can manually edit the config if you wish.
-* Support for alternate folder structure. [Read more about alternate folder structure here.](#Alternate Folder Structure)
+* Support for alternate folder structure. [Read more about alternate folder structure here.](https://github.com/PhosCity/muxkt#alternate-folder-structure)
 
 # Installation
 
@@ -33,51 +33,47 @@ This project is made for following folder structure:
 └── Subkt Configs
 ```
 
-The help page for muxkt looks like this. It has commands just like git where the command after `muxkt` informs the program what it should do. Currently, the commands present are mux and config. Since you are most likely use mux comand a lot, I recommend you to alias `muxkt mux` to something like `mux` if you wish.
+It has commands just like git where the command after `muxkt` informs the program what it should do. Currently, the commands present are mux and config. Since you are most likely use mux comand a lot, I recommend you to alias `muxkt mux` to something like `mux` if you wish. Additionally, there are help pages for all commands.
 
 ```
-Usage: muxkt [OPTIONS] COMMAND [ARGS]...
+# To see the list of all availalble commands
+muxkt -h
 
-  Wrapper for Subkt written in Python.
+# To see the help for mux command
+muxkt mux -h
 
-Options:
-  --version  Show the version and exit.
-  --help     Show this message and exit.
-
-Commands:
-  config  Add, remove, edit projects in the config.
-  mux     Mux the episodes.
+# Similarly, to see the help for config commands
+muxkt config -h
 ```
+
+If you're running the script for the first time, I advise you to run `muxkt config add` to add as many projects as you have and their corresponding path to the config. Project with space is not valid. If you haven't added the projects to the config, then the first run of the script will prompt you to create one. You can use the script without adding any projects to the config by directly passing the project path by doing `muxkt mux -p <path/to/project>` but that will get tedious soon.
 
 The following output of `muxkt mux --help` should give you a pretty decent idea of what is available to you while muxing. However, you can always just run `muxkt mux` and the program will guide you to do everything interactively as well.
-```
-Usage: muxkt mux [OPTIONS]
 
-  Mux the episodes.
+```
+Usage: muxkt mux [OPTIONS] [PROJECT] [EPISODE]...
+
+  Mux the episodes. Optionally, provide project and episodes as argument.
 
 Options:
-  -p, --path PATH        Path to the project directory.
-  -a, --alt_folder       Altenate folder structure(./arc/episode)
-  -n, --name TEXT        Name of the project saved in config.
-  -e, --episode INTEGER  Episode you want to mux.
-  -r, --repeat           Repeat last muxing action.
-  -o, --output           See whole output of Subkt.
-  --help                 Show this message and exit.
+  -p, --path PATH   Path to the project directory.
+  -a, --alt_folder  Altenate folder structure(./arc/episode)
+  -r, --repeat      Repeat last muxing action.
+  -o, --output      See whole output of Subkt.
+  -h, --help        Show this message and exit.
 ```
 
-At any point, you can run `muxkt config <command>` to add or remove projects from the config or manually edit the config in the editor. Following is the help page of `muxkt config --help`
+Now let's say you added a project name called `komi` You have following options in the script:
+
 ```
-Usage: muxkt config [OPTIONS] COMMAND [ARGS]...
+# Provide project name and episode as positional argument. It muxes episode 4 of project named komi.
+muxkt mux komi 4
 
-  Add, remove, edit projects in the config.
+# You can mux multiple episodes. The following muxes 4 5 and 12 of project named komi.
+muxkt mux komi 4 5 12
 
-Options:
-  --help  Show this message and exit.
-
-Commands:
-  add     Add projects to config.
-  edit    Manually edit the config.
-  remove  Remove projects from the config.
+# Provide full path of the directory where komi project is located.
+muxkt mux -p path/to/komi/project -e 4
 ```
 
 # Alternate Folder Structure
@@ -104,4 +100,12 @@ If the `arc` in the sub.properties has not been set to follow this rule, then th
 ```
 [Exceptions]
 davybackfight = dbf
+```
+
+Additionally, you can add projects that have alternate folder structure in config as shown below:
+
+```
+[Alt-Folder]
+project1 = alt
+project2 = alt
 ```
