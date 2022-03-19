@@ -66,6 +66,9 @@ Options:
 Now let's say you added a project name called `komi` You have following options in the script:
 
 ```
+# Interactive mode. Just run the following command and let the script handle it.
+muxkt mux
+
 # Provide project name and episode as positional argument. It muxes episode 4 of project named komi.
 muxkt mux komi 4
 
