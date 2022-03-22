@@ -182,10 +182,6 @@ class Mux:
 @click.option(
     "-a", "--alt_folder", is_flag=True, help="Altenate folder structure(./arc/episode)"
 )
-# @click.option("-n", "--name", type=str, help="Name of the project saved in config.")
-# @click.option("-e", "--episode", type=int, help="Episode you want to mux.")
-@click.argument("project", required=False, nargs=1)
-@click.argument("episode", required=False, nargs=-1, type=int)
 @click.option("-r", "--repeat", is_flag=True, help="Repeat last muxing action.")
 @click.option(
     "-o",
@@ -193,14 +189,14 @@ class Mux:
     is_flag=True,
     help="See whole output of Subkt.",
 )
+@click.argument("project", required=False, nargs=1)
+@click.argument("episode", required=False, nargs=-1, type=int)
 @click.help_option("-h", "--help")
 def mux(path, episode, project, repeat, alt_folder, output):
     """Mux the episodes. Optionally, provide project and episodes as argument."""
 
     # Check for dependenies and exit if anything required is not found.
     check_dependency()
-
-    # If episode is provided by the user as an argument, create a list of all of those episodes, but pad it with 0 if the episode is single digit.
 
     # Show the full SubKt of last mux and exit
     if output:
