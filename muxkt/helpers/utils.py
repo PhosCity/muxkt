@@ -1,11 +1,11 @@
 import os
 import click
 from iterfzf import iterfzf
+from time import sleep
 
 
 def selection(_list):
     """Takes in a list and allows the user to choose among the list using fzf"""
-    from time import sleep
 
     for item in _list:
         yield item.strip()
@@ -109,3 +109,23 @@ def check_dependency():
         for i in missing_dependency:
             click.echo(i)
         exit(1)
+
+
+def check_for_updates():
+    import requests
+    import re
+    from muxkt.helpers import __version__
+
+    current_version = __version__.VERSION
+
+    git_version_url = "https://raw.githubusercontent.com/PhosCity/muxkt/main/muxkt/helpers/__version__.py"
+    regex = re.compile(r"VERSION\s*=\s*[\"'](\d+\.\d+\.\d+)[\"']")
+    r = requests.get(git_version_url)
+    remote_version = re.match(regex, r.text).group(1)
+    if remote_version > current_version:
+        print(
+            "New version (on GitHub) is available: {} -> {}\n".format(
+                current_version, remote_version
+            )
+        )
+    sleep(2)

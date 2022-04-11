@@ -17,9 +17,7 @@ Muxkt is a wrapper for [SubKt](https://github.com/Myaamori/SubKt) that was writt
 # Installation
 
 ```
-git clone https://github.com/PhosCity/muxkt.git
-cd muxkt
-pip install .
+pip install git+https://github.com/PhosCity/muxkt.git
 ```
 
 # Usage

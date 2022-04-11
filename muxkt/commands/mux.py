@@ -6,6 +6,7 @@ import subprocess
 from muxkt.commands.config import Config
 from muxkt.helpers.utils import (
     check_dependency,
+    check_for_updates,
     exit_if_empty_variable,
     exit_with_msg,
     path_is_subkt,
@@ -194,6 +195,8 @@ class Mux:
 @click.help_option("-h", "--help")
 def mux(path, episode, project, repeat, alt_folder, output):
     """Mux the episodes. Optionally, provide project and episodes as argument."""
+
+    check_for_updates()
 
     # Check for dependenies and exit if anything required is not found.
     check_dependency()
