@@ -80,36 +80,36 @@ muxkt mux -p path/to/komi/project -e 4
 <details>
   <summary>Alternate Folder Structure</summary>
 
-	This program has a flag `muxkt mux -a` for alternate folder structure. You will probably never have to use this but I have implemented this folder structure for a couple of my projects thus I have added this here. The folder structure looks like this:
-	```.
-	├── 01 Name of Arc 1/ Season 1
-	│   ├── 01
-	│   ├── 02
-	│   └── ...
-	├── 02 Name of Arc2/ Season 2
-	│   ├── 01
-	│   ├── 02
-	│   └── ...
-	├── ...
-	│   ├── ...
-	└── Subkt Configs
-	```
-	This folder structure became necessary for me because I was handling projects of hundreds of epidodes and thus I had to divide the episodes in their respective arcs. If you have this folder structure, use `-a` flag while muxing and the project will prompt you to choose both an arc and the episode of that arc for muxing.
+This program has a flag `muxkt mux -a` for alternate folder structure. You will probably never have to use this but I have implemented this folder structure for a couple of my projects thus I have added this here. The folder structure looks like this:
+```.
+├── 01 Name of Arc 1/ Season 1
+│   ├── 01
+│   ├── 02
+│   └── ...
+├── 02 Name of Arc2/ Season 2
+│   ├── 01
+│   ├── 02
+│   └── ...
+├── ...
+│   ├── ...
+└── Subkt Configs
+```
+This folder structure became necessary for me because I was handling projects of hundreds of epidodes and thus I had to divide the episodes in their respective arcs. If you have this folder structure, use `-a` flag while muxing and the project will prompt you to choose both an arc and the episode of that arc for muxing.
 
-	To explain briefly, instead of doing `mux.01`, we're doing `mux.arc_01` where, for automation, I set `arc` in sub.properties by taking the folder name of the arc, remove first 3 characters, make everything lowercase and remove space. So, for example, if the folder name was `02 Orange Town`, removing first 3 characters gives `Orange Town`, then making lowercase gives `orange town` and removing spaces gives `orangetown`. Thus, to mux episode 1 of arc `Orange Town`, the SubKt commands becomes `mux.orangetown_01`.
+To explain briefly, instead of doing `mux.01`, we're doing `mux.arc_01` where, for automation, I set `arc` in sub.properties by taking the folder name of the arc, remove first 3 characters, make everything lowercase and remove space. So, for example, if the folder name was `02 Orange Town`, removing first 3 characters gives `Orange Town`, then making lowercase gives `orange town` and removing spaces gives `orangetown`. Thus, to mux episode 1 of arc `Orange Town`, the SubKt commands becomes `mux.orangetown_01`.
 
-	If the `arc` in the sub.properties has not been set to follow this rule, then the exception can be defined in config under `Exceptions` section as follows where key is what would it be if it followed the rule above and value is what is actually set in sub.properties:
+If the `arc` in the sub.properties has not been set to follow this rule, then the exception can be defined in config under `Exceptions` section as follows where key is what would it be if it followed the rule above and value is what is actually set in sub.properties:
 
-	```
-	[Exceptions]
-	davybackfight = dbf
-	```
+```
+[Exceptions]
+davybackfight = dbf
+```
 
-	Additionally, you can add projects that have alternate folder structure in config as shown below:
+Additionally, you can add projects that have alternate folder structure in config as shown below:
 
-	```
-	[Alt-Folder]
-	project1 = alt
-	project2 = alt
-	```
+```
+[Alt-Folder]
+project1 = alt
+project2 = alt
+```
 </details>
