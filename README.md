@@ -12,7 +12,7 @@ Muxkt is a wrapper for [SubKt](https://github.com/Myaamori/SubKt) that was writt
 * Redo the last mux (single or mutiple episodes) with a flag.
 * If you want to watch the original output of Subkt for the last mux you did, you can easily do so with a flag.
 * Easily add or remove projects from the config. There is also a command to open the config in your default editor so that you can manually edit the config if you wish.
-* Support for alternate folder structure. [Read more about alternate folder structure here.](https://github.com/PhosCity/muxkt#alternate-folder-structure)
+* Support for alternate folder structure. Read more about alternate folder structure below.
 
 # Installation
 

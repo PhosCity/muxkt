@@ -128,4 +128,4 @@ def check_for_updates():
                 current_version, remote_version
             )
         )
-    sleep(2)
+        sleep(2)
