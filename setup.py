@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 from muxkt.helpers.__version__ import VERSION
 
-requirements = ["click", "colorama", "iterfzf"]
+requirements = ["click", "colorama", "iterfzf", "requests"]
 
 setup(
     name="muxkt",
