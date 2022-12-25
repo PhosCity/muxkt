@@ -98,8 +98,8 @@ class Mux:
             for line in f:
                 if re.search(r"[vV]alidating fonts for.*", line):
                     warning_list.append(line.strip())
-                elif re.search(r"warning: .*", line):
-                    warning = re.sub("^.*warning: (.*).*$", "\\1", line)
+                elif re.search(r"[wW]arning: .*", line):
+                    warning = re.sub("^.*[wW]arning: (.*).*$", "\\1", line)
                     warning_list.append(warning.strip())
 
         if warning_list:
