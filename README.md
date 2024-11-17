@@ -4,15 +4,15 @@ Muxkt is a wrapper for [SubKt](https://github.com/Myaamori/SubKt) that was writt
 
 ## Main feature of muxkt
 
-* It's config based where you can save any number of your current projects. You can thus run this script and choose from one of your projects to mux it's episodes.
-* Choose a single or multiple episodes to mux then all at once.
-* Pass the path of the project directly as an argument to mux episodes in that folder if it's not saved in your config.
-* Sort both the stdout and stderr of SubKt and present them less verbosely.
-* Make fatal errors more easier to see. (For example: The missing fonts are highlighted among the list of warnings.)
-* Redo the last mux (single or mutiple episodes) with a flag.
-* If you want to watch the original output of Subkt for the last mux you did, you can easily do so with a flag.
-* Easily add or remove projects from the config. There is also a command to open the config in your default editor so that you can manually edit the config if you wish.
-* Support for alternate folder structure. Read more about alternate folder structure below.
+- It's config based where you can save any number of your current projects. You can thus run this script and choose from one of your projects to mux it's episodes.
+- Choose a single or multiple episodes to mux then all at once.
+- Sort both the stdout and stderr of SubKt and present them less verbosely.
+- Make fatal errors more easier to see. (For example: The missing fonts are highlighted among the list of warnings.)
+- Redo the last mux (single or mutiple episodes) with a flag.
+- If you want to watch the original output of Subkt for the last mux you did, you can easily do so with a flag.
+- Easily add or remove projects from the config. There is also a command to open the config in your default editor so that you can manually edit the config if you wish.
+- Add custom gradle cli flags (example: -Pargs) to the command that is run.
+- Support for alternate folder structure. Read more about alternate folder structure below.
 
 # Installation
 
@@ -21,7 +21,9 @@ pip install git+https://github.com/PhosCity/muxkt.git
 ```
 
 # Usage
+
 This project is made for following folder structure:
+
 ```
 .
 ├── 01
@@ -44,21 +46,20 @@ muxkt mux -h
 muxkt config -h
 ```
 
-If you're running the script for the first time, I advise you to run `muxkt config add` to add as many projects as you have and their corresponding path to the config. Project with space is not valid. If you haven't added the projects to the config, then the first run of the script will prompt you to create one. You can use the script without adding any projects to the config by directly passing the project path by doing `muxkt mux -p <path/to/project>` but that will get tedious soon.
+If you're running the script for the first time, I advise you to run `muxkt config add` to add as many projects as you have and their corresponding path to the config. Project with space is not valid.
 
 The following output of `muxkt mux --help` should give you a pretty decent idea of what is available to you while muxing. However, you can always just run `muxkt mux` and the program will guide you to do everything interactively as well.
 
 ```
 Usage: muxkt mux [OPTIONS] [PROJECT] [EPISODE]...
 
-  Mux the episodes. Optionally, provide project and episodes as argument.
+  Mux the episodes using the arguments and the options provided by the user.
 
 Options:
-  -p, --path PATH   Path to the project directory.
-  -a, --alt_folder  Altenate folder structure(./arc/episode)
-  -r, --repeat      Repeat last muxing action.
-  -o, --output      See whole output of Subkt.
-  -h, --help        Show this message and exit.
+  -h, --help              Show this message and exit.
+  -r, --repeat            Repeat last muxing action.
+  -o, --output            See original output of previous mux
+  -c, --custom_flag TEXT  Provide multiple custom Gradle flags (e.g., -Pkey=value).
 ```
 
 Now let's say you added a project name called `komi` You have following options in the script:
@@ -72,44 +73,37 @@ muxkt mux komi 4
 
 # You can mux multiple episodes. The following muxes 4 5 and 12 of project named komi.
 muxkt mux komi 4 5 12
-
-# Provide full path of the directory where komi project is located.
-muxkt mux -p path/to/komi/project -e 4
 ```
 
-<details>
-  <summary>Alternate Folder Structure</summary>
+# Alternate Folder Structure
 
-This program has a flag `muxkt mux -a` for alternate folder structure. You will probably never have to use this but I have implemented this folder structure for a couple of my projects thus I have added this here. The folder structure looks like this:
+This program supports an alternate folder structure. You will probably never have to use this but I have implemented this folder structure for a couple of the projects I'm in, so I have added this here. The folder structure looks like this:
+
 ```.
 ├── 01 Name of Arc 1/ Season 1
-│   ├── 01
-│   ├── 02
-│   └── ...
+│   ├── 01
+│   ├── 02
+│   └── ...
 ├── 02 Name of Arc2/ Season 2
-│   ├── 01
-│   ├── 02
-│   └── ...
+│   ├── 01
+│   ├── 02
+│   └── ...
 ├── ...
-│   ├── ...
+│   ├── ...
 └── Subkt Configs
 ```
-This folder structure became necessary for me because I was handling projects of hundreds of epidodes and thus I had to divide the episodes in their respective arcs. If you have this folder structure, use `-a` flag while muxing and the project will prompt you to choose both an arc and the episode of that arc for muxing.
+
+This folder structure became necessary for me because I was handling projects of hundreds of episodes and thus I had to divide the episodes in their respective arcs. If you have this folder structure, choose `alternate` folder structure when you add a project to config. Then when you try to mux this project, muxkt will prompt you to choose both an arc and the episode of that arc for muxing.
 
 To explain briefly, instead of doing `mux.01`, we're doing `mux.arc_01` where, for automation, I set `arc` in sub.properties by taking the folder name of the arc, remove first 3 characters, make everything lowercase and remove space. So, for example, if the folder name was `02 Orange Town`, removing first 3 characters gives `Orange Town`, then making lowercase gives `orange town` and removing spaces gives `orangetown`. Thus, to mux episode 1 of arc `Orange Town`, the SubKt commands becomes `mux.orangetown_01`.
 
-If the `arc` in the sub.properties has not been set to follow this rule, then the exception can be defined in config under `Exceptions` section as follows where key is what would it be if it followed the rule above and value is what is actually set in sub.properties:
+If the `arc` in the sub.properties has not been set to follow this rule, then the exception can be defined in config when you add the project to the config.
+For example, the rule gives us `orangetown` as shown above but if you assigned this folder to `ot` in sub.properties, we need the command to be `mux.ot_01`.
+So set exception for `orangetown` as `ot` when you are prompted to add exceptions.
+``
 
-```
-[Exceptions]
-davybackfight = dbf
-```
+# Showcase
 
-Additionally, you can add projects that have alternate folder structure in config as shown below:
+Here's an example preview of what the result looks like.
 
-```
-[Alt-Folder]
-project1 = alt
-project2 = alt
-```
-</details>
+![showcase](https://github.com/user-attachments/assets/4e569f19-d172-4ed8-813a-a0588477bd91)
