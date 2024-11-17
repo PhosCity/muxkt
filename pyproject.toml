@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "muxkt"
+version = "0.1.0"
+description = "Wrapper for SubKt written in python"
+authors = ["PhosCity <phoscity2@gmail.com>"]
+license = "GPL-3.0-or-later"
+readme = "README.md"
+homepage = "https://github.com/PhosCity/muxkt"
+
+
+[tool.poetry.dependencies]
+python = "^3.12"
+click = "^8.1.7"
+rich = "^13.9.4"
+iterfzf = "^1.4.0.54.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.poetry.scripts]
+muxkt = "muxkt.main:cli" # entry point to the cli
