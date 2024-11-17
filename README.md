@@ -16,9 +16,17 @@ Muxkt is a wrapper for [SubKt](https://github.com/Myaamori/SubKt) that was writt
 
 # Installation
 
-```
-pip install git+https://github.com/PhosCity/muxkt.git
-```
+First ensure [Poetry is installed](https://python-poetry.org/docs/#installation).
+
+Then run the following command:
+
+    ```sh
+    git clone https://github.com/PhosCity/muxkt.git \
+    && cd muxkt \
+    && poetry build \
+    && pip install muxkt \
+    && cd ..
+    ```
 
 # Usage
 
