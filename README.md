@@ -28,9 +28,13 @@ Then run the following command:
     && cd ..
     ```
 
-# Usage
+# Folder Structure
 
-This project is made for following folder structure:
+Muxkt supports two folder structures: normal and alternate.
+
+## Normal Folder Structure
+
+All the episode folders are available in the same folder as the subkt files. This folder structure is what most of the people will use.
 
 ```
 .
@@ -41,7 +45,29 @@ This project is made for following folder structure:
 └── Subkt Configs
 ```
 
-It has commands just like git where the command after `muxkt` informs the program what it should do. Currently, the commands present are mux and config. Since you are most likely use mux comand a lot, I recommend you to alias `muxkt mux` to something like `mux` if you wish. Additionally, there are help pages for all commands.
+## Alternate Folder Structure
+
+All the episode folders are available in the sub folders. This is useful for long series divided by arcs or seasons.
+
+```.
+├── 01 Name of Arc 1/ Season 1
+│   ├── 01
+│   ├── 02
+│   └── ...
+├── 02 Name of Arc2/ Season 2
+│   ├── 01
+│   ├── 02
+│   └── ...
+├── ...
+│   ├── ...
+└── Subkt Configs
+```
+
+Setting subkt to support this kind of folder structure is not covered in subkt docs. More info on it is at the bottom of this page.
+
+# Usage
+
+Muxkt has commands just like git where the command after `muxkt` informs the program what it should do. Currently, the commands present are mux and config. Additionally, there are help pages for all commands.
 
 ```
 # To see the list of all availalble commands
@@ -54,7 +80,7 @@ muxkt mux -h
 muxkt config -h
 ```
 
-If you're running the script for the first time, I advise you to run `muxkt config add` to add as many projects as you have and their corresponding path to the config. Project with space is not valid.
+If you're running the script for the first time, I advise you to run `muxkt config add` to add as many projects as you have with their names, their path and their folder structure to the config. Project name with space is not valid.
 
 The following output of `muxkt mux --help` should give you a pretty decent idea of what is available to you while muxing. However, you can always just run `muxkt mux` and the program will guide you to do everything interactively as well.
 
@@ -73,7 +99,7 @@ Options:
 Now let's say you added a project name called `komi` You have following options in the script:
 
 ```
-# Interactive mode. Just run the following command and let the script handle it.
+# Interactive mode. Just run the following command and let the script handle it. It will allow you to choose what project and which episode you want to mux.
 muxkt mux
 
 # Provide project name and episode as positional argument. It muxes episode 4 of project named komi.
@@ -81,37 +107,71 @@ muxkt mux komi 4
 
 # You can mux multiple episodes. The following muxes 4 5 and 12 of project named komi.
 muxkt mux komi 4 5 12
+
+# You can repeat last mux. It will repeat whatever project, episode you muxed last time.
+muxkt mux -r
+
+# You can pass custom flags if you use in the gradle command line.
+muxkt mux -c -Pargs
+
+# In case you want to view the unformatted output of last mux that subkt gave
+muxkt mux -o
 ```
-
-# Alternate Folder Structure
-
-This program supports an alternate folder structure. You will probably never have to use this but I have implemented this folder structure for a couple of the projects I'm in, so I have added this here. The folder structure looks like this:
-
-```.
-├── 01 Name of Arc 1/ Season 1
-│   ├── 01
-│   ├── 02
-│   └── ...
-├── 02 Name of Arc2/ Season 2
-│   ├── 01
-│   ├── 02
-│   └── ...
-├── ...
-│   ├── ...
-└── Subkt Configs
-```
-
-This folder structure became necessary for me because I was handling projects of hundreds of episodes and thus I had to divide the episodes in their respective arcs. If you have this folder structure, choose `alternate` folder structure when you add a project to config. Then when you try to mux this project, muxkt will prompt you to choose both an arc and the episode of that arc for muxing.
-
-To explain briefly, instead of doing `mux.01`, we're doing `mux.arc_01` where, for automation, I set `arc` in sub.properties by taking the folder name of the arc, remove first 3 characters, make everything lowercase and remove space. So, for example, if the folder name was `02 Orange Town`, removing first 3 characters gives `Orange Town`, then making lowercase gives `orange town` and removing spaces gives `orangetown`. Thus, to mux episode 1 of arc `Orange Town`, the SubKt commands becomes `mux.orangetown_01`.
-
-If the `arc` in the sub.properties has not been set to follow this rule, then the exception can be defined in config when you add the project to the config.
-For example, the rule gives us `orangetown` as shown above but if you assigned this folder to `ot` in sub.properties, we need the command to be `mux.ot_01`.
-So set exception for `orangetown` as `ot` when you are prompted to add exceptions.
-``
 
 # Showcase
 
 Here's an example preview of what the result looks like.
 
 ![showcase](https://github.com/user-attachments/assets/4e569f19-d172-4ed8-813a-a0588477bd91)
+
+# Setting up alternate folder structure in subkt
+
+If you have this folder structure, choose `alternate` folder structure when you add a project to config. Then when you try to mux this project, muxkt will prompt you to choose both an arc and the episode of that arc for muxing.
+
+To explain briefly, instead of doing `mux.01`, we're doing `mux.arc_01`. Normally in `sub.properties`, you'd set episodes like this:
+
+```
+showkey=Naruto
+episodes={01..24}|12.5
+dialogue=$episode/$showkey $episode dialogue.ass
+```
+
+However, for alternate folder structure, I set episode as:
+
+```
+episodes=s1_{01..24}|s2_{01..24}
+
+showkey=${episode.split('_')[0]}       # Gives prefix before _ (eg. s1, s2)
+ep=${episode.split('_')[1]}            # Gives suffix after _ (eg. {01..24})
+
+season1_*.folder=01 S1
+season2_*.folder=02 S2
+
+# Returns something like '01 S1/02/02 dialogue.ass'
+dialogue=${folder}/${ep}/${ep} dialogue.ass
+```
+
+Let us say that you have a folder structure like this:
+
+```.
+├── 01 Romance Dawn
+│   ├── 01
+│   ├── 02
+│   └── ...
+├── 02 Orange Town
+│   ├── 01
+│   ├── 02
+│   └── ...
+├── build.gradle.kts
+└── sub.properties
+```
+
+Here, folder and episodes are related because if we take a folder, remove first 3 characters and make it lowercase, we get the prefix for the episode.
+
+So, for example, if the folder name was `02 Orange Town`, removing first 3 characters gives `Orange Town`, then making lowercase gives `orange town` and removing spaces gives `orangetown`. Thus, to mux episode 1 of arc `Orange Town`, the SubKt commands becomes `mux.orangetown_01`.
+
+There can be exceptions to this rule. i.e instead of running `mux.orangetown_01`, what if you've set up subkt to use `mux.ot_01` command.
+
+When you add the project to the config, you can also set up this exceptions.
+Give what is expected `(orangetown)` in this case as key and `(ot)` as value of exception.
+``
