@@ -46,6 +46,12 @@ def add(ctx: click.Context) -> None:
 
         project_name = click.prompt("Name of the project", type=str)
 
+        if " " in project_name:
+            console.print("Space in project name is not valid.")
+            if not click.confirm("Do you want to add another project?", default=False):
+                break
+            continue
+
         while True:
             project_path = click.prompt("Path to the project", type=click.Path())
 
@@ -255,6 +261,7 @@ def add_history(
         project (str): The name of the project.
         path (str): The path associated with the project.
         episode (list): The list of episodes.
+        custom_flag (tuple): The custom flags for the muxing command.
 
     Returns:
         None
