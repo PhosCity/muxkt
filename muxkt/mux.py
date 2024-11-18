@@ -389,7 +389,7 @@ def cat_output(ctx: click.Context) -> None:
             content = f.read()
 
         console.print("[bold cyan]Output File Content:[/bold cyan]")
-        console.print(content)
+        click.echo(content)
         sys.exit(0)
     except FileNotFoundError:
         exit_with_msg(f"File not found: {output_file}")
