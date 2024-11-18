@@ -115,15 +115,14 @@ def remove(ctx: click.Context) -> None:
     config = ctx.obj["config"]
 
     if not config.has_section("Project"):
-        console.print("[red]Error:[/red] No projects exist in the configuration.")
-        return
+        exit_with_msg("No projects exist in the configuration.")
 
     project_list = config.options("Project")
     project_to_remove = fzf(
         project_list, "Select project to remove", choose_multiple=False
     )
     if not project_to_remove:
-        console.print("[cyan]No project selected.[/cyan]")
+        exit_with_msg("No project selected for removal.")
 
     config.remove_option("Project", project_to_remove)
     save_config(config, ctx.obj["config_file"])
@@ -246,6 +245,7 @@ def add_history(
     project: str,
     path: str,
     episode: list,
+    custom_flag: tuple,
 ) -> None:
     """
     Replaces the 'History' section with new project, path and episodes.
@@ -268,17 +268,19 @@ def add_history(
     config.add_section("History")
 
     serialized_episode = ",".join(str(x) for x in episode)
+    serialized_flags = ",".join(str(x) for x in custom_flag)
 
     config.set("History", "project", project)
     config.set("History", "path", path)
     config.set("History", "episode", serialized_episode)
+    config.set("History", "custom_flags", serialized_flags)
 
     save_config(config, ctx.obj["config_file"])
 
 
 def get_history(
     ctx: click.Context,
-) -> tuple[str, str, tuple]:
+) -> tuple[str, str, list[str], list[str]]:
     """
     Retrieve the history from the config file.
 
@@ -288,7 +290,8 @@ def get_history(
     Returns:
         str: Name of the project muxed last time.
         str: Path of the project muxed last time.
-        tuple: Episodes of the project that were muxed last time.
+        list: Episodes of the project that were muxed last time.
+        list: Custom flags for the last mux.
     """
 
     config = ctx.obj["config"]
@@ -298,11 +301,14 @@ def get_history(
 
     project = config.get("History", "project")
     path = config.get("History", "path")
+
     serialized_episode = config.get("History", "episode")
+    episode = serialized_episode.split(",")
 
-    episode = tuple(serialized_episode.split(","))
+    serialized_flags = config.get("History", "custom_flags")
+    flags = serialized_flags.split(",") if serialized_flags else []
 
-    return project, path, episode
+    return project, path, episode, flags
 
 
 def read_config(
@@ -399,21 +405,18 @@ def give_folder_structure_info() -> None:
     """
 
     normal = Tree(".")
-    normal.add("01")
-    normal.add("02")
-    normal.add("03")
-    normal.add("...")
-    normal.add("Subkt Configs")
+    for item in ["01", "02", "03", "...", "Subkt Configs"]:
+        normal.add(item)
 
     alternate = Tree(".")
     arc_1 = alternate.add("01 Name of Arc 1/ Season 1")
-    arc_1.add("01")
-    arc_1.add("02")
-    arc_1.add("...")
+    for item in ["01", "02", "..."]:
+        arc_1.add(item)
+
     arc_2 = alternate.add("01 Name of Arc 1/ Season 1")
-    arc_2.add("01")
-    arc_2.add("02")
-    arc_2.add("...")
+    for item in ["01", "02", "..."]:
+        arc_2.add(item)
+
     alternate.add("Subkt Configs")
 
     table = Table(show_lines=True)

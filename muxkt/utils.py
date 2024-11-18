@@ -1,6 +1,9 @@
 import os
 import sys
 from shutil import which
+
+from rich import box
+from rich.panel import Panel
 from rich.table import Table
 from rich.console import Console
 
@@ -73,3 +76,27 @@ def check_dependencies() -> bool:
         sys.exit(1)
     else:
         return True
+
+
+def msg_in_box(title: str, message: str) -> None:
+    """
+    Print text in a box with title
+
+    Args:
+        title (str): Title of the box
+        message (str): Message to be shown inside the box
+
+    Returns:
+        None
+    """
+
+    console.print(
+        Panel.fit(
+            message,
+            box=box.ROUNDED,
+            padding=(1, 2),
+            title=title,
+            border_style="bright_blue",
+            title_align="left",
+        ),
+    )

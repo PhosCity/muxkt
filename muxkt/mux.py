@@ -5,14 +5,12 @@ import click
 import subprocess
 
 from .selection import fzf
-from .utils import exit_with_msg, check_dependencies
 from .config import add_history, get_history, read_config
+from .utils import exit_with_msg, check_dependencies, msg_in_box
 
-from rich import box
 from rich.text import Text
 from rich.table import Table
 from rich.console import Console
-from rich.panel import Panel
 
 console = Console()
 
@@ -53,17 +51,17 @@ console = Console()
 def mux(
     ctx: click.Context,
     project: str | None,
-    episode: tuple | None,
+    episode: tuple,
     repeat: bool,
     output: bool,
-    custom_flag: str,
+    custom_flag: tuple,
 ) -> None:
     """Mux the episodes using the arguments and the options provided by the user."""
     """
     Args:
         ctx (click.Context): Context passed by click from the entry point.
         project (str | None): Name of the project. None if no argument provided.
-        episode (tuple | None): Tuple of episodes that user provided as an argument. None if no agrument provided.
+        episode (tuple | None): Tuple of episodes that user provided as an argument; empty if no argument provided.
 
     Options:
         repeat_last (bool): Mux using last mux settings. True if user used --repeat or --r option; otherwise False
@@ -73,15 +71,17 @@ def mux(
     Returns:
         None
     """
-
     if output:
         cat_output(ctx)
 
     check_dependencies()
 
-    project_name, path, episode = get_project_info(ctx, project, episode, repeat)
+    if repeat:
+        project_name, path, episode, custom_flag = get_history(ctx)
+    else:
+        project_name, path, episode = get_project_info(ctx, project, episode)
 
-    add_history(ctx, project_name, path, episode)
+    add_history(ctx, project_name, path, episode, custom_flag)
 
     output_file = ctx.obj["output_file"]
 
@@ -94,7 +94,7 @@ def mux(
             f"[red]Error:[/red] You do not have permission to access '{path}'."
         )
 
-    # click.clear()
+    click.clear()
     for ep in episode:
         cmdfile = "./gradlew" if os.name == "posix" else "gradlew.bat"
         command = [cmdfile, "--console=plain"]
@@ -112,6 +112,8 @@ def mux(
             else:
                 mux_warning(output_file)
                 mux_failure(output_file)
+
+            console.rule()
 
         except Exception as e:
             console.print(f"[red]Error during muxing: {e}[/red]")
@@ -131,112 +133,115 @@ def mux_success(output_file: str) -> None:
     try:
         with open(output_file, "r") as f:
             lines = f.read()
+    except FileNotFoundError:
+        exit_with_msg("Output file not found.")
 
-        patterns_and_headers = [
-            (r"> Task :([^S].*)", "TASKS PERFORMED:"),
-            (r"(CHAPTER.*)", "CHAPTERS GENERATED:"),
-            (r"(Track.*])", "TRACK LIST:"),
-            (r"Attaching (.*[otOT][tT][fF])", "FONTS ATTACHED:"),
-            (r"(Validating fonts.*|warning: .*)", "WARNINGS:"),
-            (r"Attaching (.*[otOT][tT][fF])", "DUPLICATE FONTS ATTACHED:"),
-            (r"Output: (.*mkv)", "OUTPUT:"),
-            (r"(\d+ actionable tasks:.*)", ""),
-            (r"(BUILD SUCCESSFUL in .*s)", ""),
-        ]
+    patterns_and_headers = [
+        (r"> Task :([^S].*)", "TASKS PERFORMED:"),
+        (r"(CHAPTER.*)", "CHAPTERS GENERATED:"),
+        (r"(Track.*])", "TRACK LIST:"),
+        (r"Attaching (.*[otOT][tT][fF])", "FONTS ATTACHED:"),
+        (r"(Validating fonts.*|warning: .*)", "WARNINGS:"),
+        (r"Attaching (.*[otOT][tT][fF])", "DUPLICATE FONTS ATTACHED:"),
+        (r"Output: (.*mkv)", "OUTPUT:"),
+        (r"(\d+ actionable tasks:.*)", ""),
+        (r"(BUILD SUCCESSFUL in .*s)", ""),
+    ]
 
-        for pattern, header in patterns_and_headers:
-            matches = [match.group(1) for match in re.finditer(pattern, lines)]
+    for pattern, header in patterns_and_headers:
+        matches = [match.group(1) for match in re.finditer(pattern, lines)]
+        if not matches:
+            continue
+
+        # Process results based on the header
+        if header == "WARNINGS:":
+            mux_warning(output_file)
+            continue
+
+        if header == "TASKS PERFORMED:":
+            console.rule(Text(header, style="bold green"))
+            matches = [match.replace(".default", "") for match in matches]
+
+            table = Table(row_styles=["dim", "none"])
+            table.add_column(style="dim")
+
+            for i, item in enumerate(matches):
+                match = re.compile(r"([^.]+)\.([^\s]+)( UP-TO-DATE)?").match(item)
+                if not match:
+                    continue
+
+                number_padded = str(i + 1)
+                name_part = match.group(1)
+                after_dot_part = match.group(2)
+                status = match.group(3) or "EXECUTED"
+                if i == 0:  # Set the header only once
+                    table.add_column(f"Task performed for {after_dot_part}")
+                    table.add_column("Status")
+                table.add_row(number_padded, name_part, status.strip())
+
+            console.print(table)
+
+        elif header == "FONTS ATTACHED:":
+            console.rule(Text(header, style="bold green"))
+            matches.sort()
+            table = Table(show_header=False, row_styles=["dim", "none"])
+
+            for index, font in enumerate(matches, start=1):
+                table.add_row(str(index), font)
+
+            console.print(table)
+
+        elif header == "DUPLICATE FONTS ATTACHED:":
+            matches = list(set(item for item in matches if matches.count(item) > 1))
             if not matches:
                 continue
 
-            # Process results based on the header
-            if header == "WARNINGS:":
-                mux_warning(output_file)
-                continue
+            console.rule(Text(header, style="bold green"))
+            table = Table(show_header=False, row_styles=["dim", "none"])
 
-            if header == "TASKS PERFORMED:":
+            for index, font in enumerate(matches, start=1):
+                table.add_row(str(index), font)
+
+            console.print(table)
+
+        elif header == "TRACK LIST:":
+            console.rule(Text(header, style="bold green"))
+            table = Table(row_styles=["dim", "none"])
+            table.add_column("Track")
+            table.add_column("Metadata")
+            table.add_column("File")
+
+            pattern = r"Track (\w+) \((.*?)\) \[(.*?)\]$"
+
+            for item in matches:
+                match = re.search(pattern, item)
+                if match:
+                    table.add_row(match.group(1), match.group(2), match.group(3))
+
+            console.print(table)
+
+        elif header == "CHAPTERS GENERATED:":
+            console.rule(Text(header, style="bold green"))
+            table = Table(row_styles=["dim", "none"])
+            table.add_column("Name", justify="left")
+            table.add_column("Timestamp", justify="left")
+
+            for i in range(0, len(matches), 2):
+                line1 = matches[i]
+                line2 = matches[i + 1]
+
+                _, value1 = line1.split("=")
+                _, value2 = line2.split("=")
+
+                table.add_row(value2, value1)
+            console.print(table)
+
+        else:
+            if header:
                 console.rule(Text(header, style="bold green"))
-                matches = [match.replace(".default", "") for match in matches]
-
-                table = Table(row_styles=["dim", "none"])
-                table.add_column(style="dim")
-
-                for i, item in enumerate(matches):
-                    match = re.compile(r"([^.]+)\.([^\s]+)( UP-TO-DATE)?").match(item)
-                    if match:
-                        number_padded = str(i + 1)
-                        name_part = match.group(1)
-                        after_dot_part = match.group(2)
-                        status = match.group(3) or "COMPLETED"
-                        if i == 0:  # Set the header only once
-                            table.add_column(f"Task performed for {after_dot_part}")
-                            table.add_column("Status")
-                        table.add_row(number_padded, name_part, status)
-                console.print(table)
-
-            elif header == "FONTS ATTACHED:":
-                console.rule(Text(header, style="bold green"))
-                matches.sort()
-                table = Table(show_header=False, row_styles=["dim", "none"])
-
-                for index, font in enumerate(matches, start=1):
-                    table.add_row(str(index), font)
-
-                console.print(table)
-
-            elif header == "DUPLICATE FONTS ATTACHED:":
-                matches = list(set(item for item in matches if matches.count(item) > 1))
-                # matches.sort()
-                if matches:
-                    console.rule(Text(header, style="bold green"))
-                    table = Table(show_header=False, row_styles=["dim", "none"])
-
-                    for index, font in enumerate(matches, start=1):
-                        table.add_row(str(index), font)
-
-                    console.print(table)
-
-            elif header == "TRACK LIST:":
-                console.rule(Text(header, style="bold green"))
-                table = Table(row_styles=["dim", "none"])
-                table.add_column("Track")
-                table.add_column("Metadata")
-                table.add_column("File")
-
-                pattern = r"Track (\w+) \((.*?)\) \[(.*?)\]$"
-
-                for item in matches:
-                    match = re.search(pattern, item)
-                    if match:
-                        table.add_row(match.group(1), match.group(2), match.group(3))
-
-                console.print(table)
-
-            elif header == "CHAPTERS GENERATED:":
-                console.rule(Text(header, style="bold green"))
-                table = Table(row_styles=["dim", "none"])
-                table.add_column("Name", justify="left")
-                table.add_column("Timestamp", justify="left")
-
-                for i in range(0, len(matches), 2):
-                    line1 = matches[i]
-                    line2 = matches[i + 1]
-
-                    _, value1 = line1.split("=")
-                    _, value2 = line2.split("=")
-
-                    table.add_row(value2, value1)
-                console.print(table)
-
-            else:
-                if header:
-                    console.rule(Text(header, style="bold green"))
-                for match in matches:
-                    click.echo(match)
-            console.print()
-
-    except FileNotFoundError:
-        exit_with_msg("Output file not found.")
+            for match in matches:
+                click.echo(match)
+        console.print()
 
 
 def mux_warning(output_file: str) -> None:
@@ -251,55 +256,48 @@ def mux_warning(output_file: str) -> None:
         None
     """
 
-    def in_box(title, message):
-        console.print(
-            Panel.fit(
-                message,
-                box=box.ROUNDED,
-                padding=(1, 2),
-                title=title,
-                border_style="bright_blue",
-                title_align="left",
-            ),
-        )
-
-    grouped = []
-    current_group = []
-
     try:
         with open(output_file, "r") as f:
-            for line in f:
-                if re.search(r"[vV]alidating fonts for.*", line):
-                    if current_group:
-                        grouped.append(current_group)
-                    current_group = [line.strip()[:-3]]
-                elif re.search(r"[wW]arning: .*", line):
-                    warning = re.sub(r"^.*[wW]arning: (.*).*$", r"\1", line)
-                    if current_group:
-                        current_group.append(warning.strip())
-
-        if current_group:
-            grouped.append(current_group)
-
+            lines = f.readlines()
     except FileNotFoundError:
         exit_with_msg("Output file not found.")
 
-    if grouped:
-        console.rule(Text("WARNINGS:", style="bold green"))
-        for group in grouped:
-            title = group.pop(0)
+    # Try to group warnings for each subtitle separately
+    grouped = []
+    current_group = []
+    for line in lines:
+        if re.search(r"[vV]alidating fonts for.*", line):
+            if current_group:
+                grouped.append(current_group)
+            current_group = [line.strip()[:-3]]
+        elif re.search(r"[wW]arning: .*", line):
+            warning = re.sub(r"^.*[wW]arning: (.*).*$", r"\1", line)
+            if current_group:
+                current_group.append(warning.strip())
 
-            text = Text()
-            if not group:
-                group.append("No issues were found.")
+    if current_group:
+        grouped.append(current_group)
 
-            for txt in group:
-                style = "bold magenta" if "not found" in txt else None
-                text.append(txt, style=style)
-                text.append("\n")
+    # Bail out early if there are not warnings collected.
+    if not grouped:
+        return
 
-            in_box(title, text)
-            console.print()
+    # Print warnings
+    console.rule(Text("WARNINGS:", style="bold green"))
+    for group in grouped:
+        title = group.pop(0)
+
+        text = Text()
+        if not group:
+            group.append("No issues were found.")
+
+        for txt in group:
+            style = "bold magenta" if "not found" in txt else None
+            text.append(txt, style=style)
+            text.append("\n")
+
+        msg_in_box(title, text)
+        console.print()
 
 
 def mux_failure(output_file: str) -> None:
@@ -394,66 +392,30 @@ def cat_output(ctx: click.Context) -> None:
         console.print(content)
         sys.exit(0)
     except FileNotFoundError:
-        console.print(f"[bold red]Error:[/bold red] File not found: {output_file}")
-        sys.exit(1)
+        exit_with_msg(f"File not found: {output_file}")
     except IOError as e:
-        console.print(f"[bold red]Error:[/bold red] Could not read file: {e}")
-        sys.exit(1)
+        exit_with_msg(f"Could not read file: {e}")
 
 
 def get_project_info(
     ctx: click.Context,
     project: str | None,
-    episode: tuple | None,
-    repeat_last: bool,
-) -> tuple[str, str, tuple | None]:
+    episode: tuple,
+) -> tuple[str, str, list[str]]:
     """
     Gets the info about the project.
 
     Args:
-        project (str | None): Project argument given by user
-                              None if no argument provided.
-        episode (tuple | None): Tuple of episodes that user provided as an argument.
-                                None if no agrument provided.
-        repeat_last (bool): True if user used --repeat or --r option; otherwise False
+        project (str | None): Project argument given by user; None if no argument provided.
+        episode (tuple): Tuple of episodes that user provided as an argument; empty if no argument provided.
 
     Returns:
         project_name (str): Name of the project either from history or from config
         path (str): Path of the project either from history or from config
-        episode (tuple | None): Episode to mux. Tuple if grabbed from history or provided as an argument by user; otherwise None.
+        episode (list[str]): List of all the episodes that needs to be muxed.
     """
 
-    if repeat_last:
-        return get_history(ctx)
-    else:
-        project_name, path = read_config(ctx.obj["config"], project)
-        episode = get_episodes(ctx, project_name, path, episode)
-        return project_name, path, episode
-
-
-def get_episodes(
-    ctx: click.Context,
-    project_name: str,
-    path: str,
-    episode: tuple | None,
-) -> list[str]:
-    """
-    Gets all the episodes for the chosen project.
-
-    If the config has set the project's folder structure as alternate, first asks the user to select arc/season folder.
-    For alternate folders, asks the user to select the episodes inside the arc/season folder.
-
-    For non-alternate folders, asks the user to select the episodes inside the path itself.
-
-    Args:
-        project_name (str): The name of the project from the config.
-        path (str): The directory path to search for episodes/arcs/seasons.
-        episode (tuple | None): None if user does not provide episode as an argument or does not repeat last mux.
-                                Tuple of episodes that user provided as an argument or retrieved from last mux's history.
-
-    Returns:
-        list[str]: List of all the episodes that needs to be muxed.
-    """
+    project_name, path = read_config(ctx.obj["config"], project)
 
     config = ctx.obj["config"]
 
@@ -463,10 +425,14 @@ def get_episodes(
         episode = [f"{ep:02}" for ep in sorted(episode)]
 
     if episode and not alternate_folder:
-        return episode
+        return project_name, path, episode
 
     elif not episode and not alternate_folder:
-        return select_folder(path, "Select single or multiple episode: ", True)
+        return (
+            project_name,
+            path,
+            select_folder(path, "Select single or multiple episode: ", True),
+        )
 
     else:
         arc = select_folder(path, "Select an arc/season: ", False)
@@ -482,7 +448,7 @@ def get_episodes(
         if config.has_option(exceptions_section, arc):
             arc = config.get(exceptions_section, arc)
 
-        return [arc + "_" + str(ep) for ep in episode]
+        return project_name, path, [arc + "_" + str(ep) for ep in episode]
 
 
 def select_folder(
