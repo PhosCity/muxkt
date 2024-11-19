@@ -3,6 +3,7 @@ import sys
 from shutil import which
 
 from rich import box
+from rich.text import Text
 from rich.panel import Panel
 from rich.table import Table
 from rich.console import Console
@@ -78,7 +79,7 @@ def check_dependencies() -> bool:
         return True
 
 
-def msg_in_box(title: str, message: str) -> None:
+def msg_in_box(title: str, message: str | Text) -> None:
     """
     Print text in a box with title
 

@@ -18,7 +18,7 @@ def selection(iterable: list):
         sleep(0.01)
 
 
-def fzf(iterable: list, prompt: str, choose_multiple: bool = False) -> list | str:
+def fzf(iterable: list, prompt: str, choose_multiple: bool = False):
     """
     Takes in a list and allows the user to choose among the list using fzf
 

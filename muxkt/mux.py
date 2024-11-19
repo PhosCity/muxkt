@@ -71,6 +71,7 @@ def mux(
     Returns:
         None
     """
+
     if output:
         cat_output(ctx)
 
@@ -88,11 +89,9 @@ def mux(
     try:
         os.chdir(path)
     except FileNotFoundError:
-        console.print(f"[red]Error:[/red] The path '{path}' does not exist.")
+        exit_with_msg(f"The path '{path}' does not exist.")
     except PermissionError:
-        console.print(
-            f"[red]Error:[/red] You do not have permission to access '{path}'."
-        )
+        exit_with_msg(f"You do not have permission to access '{path}'.")
 
     click.clear()
     for ep in episode:
@@ -107,6 +106,7 @@ def mux(
                 with open(output_file, "w") as f:
                     result = subprocess.run(command, stdout=f, stderr=f, text=True)
 
+            console.print(f'[cyan]Muxing "{project_name}" - Episode {ep}[/cyan]')
             if result.returncode == 0:
                 mux_success(output_file)
             else:
@@ -116,7 +116,7 @@ def mux(
             console.rule()
 
         except Exception as e:
-            console.print(f"[red]Error during muxing: {e}[/red]")
+            exit_with_msg(f"Error during muxing: {e}")
 
 
 def mux_success(output_file: str) -> None:
@@ -158,7 +158,7 @@ def mux_success(output_file: str) -> None:
             mux_warning(output_file)
             continue
 
-        if header == "TASKS PERFORMED:":
+        elif header == "TASKS PERFORMED:":
             console.rule(Text(header, style="bold green"))
             matches = [match.replace(".default", "") for match in matches]
 
@@ -361,7 +361,8 @@ def mux_failure(output_file: str) -> None:
         r"(not a valid boolean:.*)",
         r"(BUILD FAILED.*)",
     ]
-    with open(output_file) as f:
+
+    with open(output_file, "r") as f:
         lines = f.read()
 
     for pattern in failure_patterns:
@@ -369,6 +370,28 @@ def mux_failure(output_file: str) -> None:
         for match in matches:
             console.print(match.group(1))
             console.print()
+
+    line_list = lines.splitlines()
+    # Print subkt compilaton errors
+    start_line = "Script compilation errors:"
+    end_line = r"^\d+ errors$"
+
+    start_index = -1
+    end_index = -1
+
+    if start_line in line_list:
+        start_index = line_list.index(start_line)
+
+    for i, line in enumerate(line_list):
+        if re.match(end_line, line):
+            end_index = i
+            break
+
+    if start_index != -1 and end_index != -1 and start_index < end_index:
+        msg_in_box(
+            "Script compilaton errors",
+            "\n".join(line_list[start_index + 1 : end_index + 1]),
+        )
 
 
 def cat_output(ctx: click.Context) -> None:
@@ -381,10 +404,9 @@ def cat_output(ctx: click.Context) -> None:
     Returns:
         None: Prints out the previous output and exits the program.
     """
+    output_file = ctx.obj["output_file"]
 
     try:
-        output_file = os.path.join(ctx.obj["config_file_path"], "output.txt")
-
         with open(output_file, "r") as f:
             content = f.read()
 
@@ -394,7 +416,7 @@ def cat_output(ctx: click.Context) -> None:
     except FileNotFoundError:
         exit_with_msg(f"File not found: {output_file}")
     except IOError as e:
-        exit_with_msg(f"Could not read file: {e}")
+        exit_with_msg(f"Could not read output file: {e}")
 
 
 def get_project_info(
@@ -478,4 +500,4 @@ def select_folder(
 
     if not selected_folders:
         exit_with_msg("User did not select anything. Exiting.")
-    return selected_folders
+    return sorted(selected_folders)

@@ -13,16 +13,8 @@ console = Console()
 
 @click.group()
 @click.help_option("--help", "-h")
-@click.pass_context
-def config(ctx: click.Context) -> None:
+def config() -> None:
     """Add, remove, edit projects in the config."""
-    """
-    Args:
-        ctx (click.Context): Context passed by click from the entry point.
-
-    Returns:
-        None
-    """
     pass
 
 
@@ -154,7 +146,7 @@ def edit_manual(ctx: click.Context) -> None:
     except click.exceptions.ClickException as e:
         exit_with_msg(f"Could not open editor: {e}")
     except Exception as e:
-        exit_with_msg(e)
+        exit_with_msg(str(e))
 
 
 @config.command()
@@ -321,7 +313,7 @@ def get_history(
 def read_config(
     config: configparser.ConfigParser,
     project: str | None,
-) -> tuple[str, str]:
+):
     """
     Read the config and collects the project's name and its path.
 
@@ -350,9 +342,9 @@ def read_config(
 
     try:
         path = config.get("Project", project)
+        return project, path
     except configparser.NoOptionError:
         exit_with_msg(f"No project named '{project}' found in the config")
-    return project, path
 
 
 def add_to_configparser(
@@ -396,8 +388,8 @@ def save_config(
         None
     """
 
-    with open(config_file, "w") as config_file:
-        config.write(config_file)
+    with open(config_file, "w") as c:
+        config.write(c)
 
 
 def give_folder_structure_info() -> None:
