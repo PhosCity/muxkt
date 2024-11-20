@@ -1,11 +1,11 @@
-import os
-import click
 import configparser
+import os
+
+import click
+from rich.traceback import install
 
 from .config import config
 from .mux import mux
-
-from rich.traceback import install
 
 install(show_locals=True, suppress=[click])
 

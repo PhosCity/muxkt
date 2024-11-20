@@ -1,16 +1,16 @@
 import os
 import re
-import sys
-import click
 import subprocess
+import sys
 
-from .selection import fzf
-from .config import add_history, get_history, read_config
-from .utils import exit_with_msg, check_dependencies, msg_in_box
-
-from rich.text import Text
-from rich.table import Table
+import click
 from rich.console import Console
+from rich.table import Table
+from rich.text import Text
+
+from .config import add_history, get_history, read_config
+from .selection import fzf
+from .utils import check_dependencies, exit_with_msg, msg_in_box
 
 console = Console()
 
@@ -312,7 +312,8 @@ def mux_failure(output_file: str) -> None:
     """
 
     failure_patterns = [
-        r"(What went wrong.*)",
+        r"(FAILURE: .*)",
+        r"(.*What went wrong.*)",
         r"(A problem occurred.*)",
         r"(Execution failed for task.*)",
         r"(Error resolving.*)",
@@ -325,9 +326,8 @@ def mux_failure(output_file: str) -> None:
         r"(malformed property.*)",
         r"(mkvmerge failed:.*)",
         r"(Error: .*)",
-        r"(FAILURE: .*)",
         r"(is ambiguous in root project.*)",
-        r"(could not find target sync line.*)",
+        r"(.*could not find target sync line.*)",
         r"(could not find property file.*)",
         r"(Could not create task.*)",
         r"(no chapter definitions found;.*)",
@@ -458,6 +458,7 @@ def get_project_info(
 
     else:
         arc = select_folder(path, "Select an arc/season: ", False)
+        console.print(arc)
         if not episode:
             episode = select_folder(
                 os.path.join(path, arc),
@@ -500,4 +501,4 @@ def select_folder(
 
     if not selected_folders:
         exit_with_msg("User did not select anything. Exiting.")
-    return sorted(selected_folders)
+    return selected_folders

@@ -1,5 +1,6 @@
-from iterfzf import iterfzf
 from time import sleep
+
+from iterfzf import iterfzf
 
 
 def selection(iterable: list):

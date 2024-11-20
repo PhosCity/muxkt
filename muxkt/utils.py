@@ -3,10 +3,10 @@ import sys
 from shutil import which
 
 from rich import box
-from rich.text import Text
+from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-from rich.console import Console
+from rich.text import Text
 
 console = Console()
 

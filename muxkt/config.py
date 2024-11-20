@@ -1,12 +1,12 @@
-import click
 import configparser
 
-from .selection import fzf
-from .utils import path_is_valid_subkt, exit_with_msg
-
-from rich.tree import Tree
-from rich.table import Table
+import click
 from rich.console import Console
+from rich.table import Table
+from rich.tree import Tree
+
+from .selection import fzf
+from .utils import exit_with_msg, path_is_valid_subkt
 
 console = Console()
 
